@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CowBreed AI — Intelligent Indian Cattle Identifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#05060e;
+  --bg2:#090b17;
+  --bg3:#0e1020;
+  --card:#0c0e1e;
+  --border:#181c35;
+  --border2:#22284a;
+  --text:#eef0ff;
+  --muted:#585e82;
+  --soft:#8b90b8;
+  --gold:#f0a500;
+  --gold2:#fbbf24;
+  --gold3:#fde68a;
+  --gold-dim:rgba(240,165,0,0.1);
+  --gold-glow:rgba(240,165,0,0.3);
+  --green:#22d47e;
+  --green2:#10b981;
+  --red:#f05a5a;
+  --red2:#ef4444;
+  --blue:#5b8af5;
+  --purple:#a78bfa;
+  --orange:#fb923c;
+  --r-xs:6px;--r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:32px;
+  --shadow-sm:0 4px 16px rgba(0,0,0,.4);
+  --shadow-md:0 12px 40px rgba(0,0,0,.5);
+  --shadow-lg:0 32px 80px rgba(0,0,0,.65);
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ── Custom cursor ── */
+#cursor{position:fixed;width:10px;height:10px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,opacity .2s;mix-blend-mode:difference}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(240,165,0,.4);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .25s,height .25s,opacity .2s}
+
+/* ── BG ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(100px);will-change:transform;pointer-events:none}
+.orb1{width:720px;height:720px;background:radial-gradient(circle,rgba(240,165,0,.15),transparent 65%);top:-220px;left:-200px;animation:drift1 20s ease-in-out infinite}
+.orb2{width:520px;height:520px;background:radial-gradient(circle,rgba(91,138,245,.1),transparent 65%);top:40%;right:-140px;animation:drift2 24s ease-in-out infinite}
+.orb3{width:420px;height:420px;background:radial-gradient(circle,rgba(34,212,126,.07),transparent 65%);bottom:5%;left:20%;animation:drift3 28s ease-in-out infinite}
+.orb4{width:300px;height:300px;background:radial-gradient(circle,rgba(167,139,250,.08),transparent 65%);top:60%;left:5%;animation:drift1 32s ease-in-out infinite reverse}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(45px,-55px) scale(1.08)}66%{transform:translate(-28px,38px) scale(.95)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-35px,45px) scale(1.1)}}
+@keyframes drift3{0%,100%{transform:translate(0,0)}40%{transform:translate(32px,-32px)}70%{transform:translate(-22px,22px)}}
+.dot-grid{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(240,165,0,.06) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%)}
+.noise{position:absolute;inset:0;opacity:.018;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")}
+
+/* ── Pages ── */
+.page{display:none;position:relative;z-index:1;min-height:calc(100vh - 70px)}
+.page.active{display:block;animation:pageIn .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes pageIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══ NAVBAR ══ */
+.navbar{
+  position:sticky;top:0;z-index:500;
+  background:rgba(5,6,14,.85);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border-bottom:1px solid var(--border);height:70px;
+}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 32px;height:70px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.5px;color:var(--text);text-decoration:none;cursor:pointer;flex-shrink:0;transition:opacity .2s}
+.nav-brand:hover{opacity:.85}
+.brand-cow{font-size:26px;filter:drop-shadow(0 0 12px var(--gold-glow));animation:cowBob 3.5s ease-in-out infinite;display:inline-block}
+@keyframes cowBob{0%,100%{transform:rotate(-4deg) scale(1)}50%{transform:rotate(4deg) scale(1.06)}}
+.brand-ai{color:var(--gold)}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-btn{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--muted);padding:8px 16px;border-radius:var(--r-sm);border:none;background:none;cursor:none;transition:color .15s,background .15s;white-space:nowrap}
+.nav-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.nav-btn.active{color:var(--bg);background:linear-gradient(135deg,var(--gold),var(--gold2));font-weight:700;box-shadow:0 0 20px var(--gold-dim),0 4px 16px rgba(240,165,0,.18)}
+.nav-dropdown{position:relative}
+.nav-dropdown:hover .dropdown-panel,.nav-dropdown:focus-within .dropdown-panel{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+.dropdown-panel{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(-8px);background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-lg);padding:20px;width:660px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:var(--shadow-lg),0 0 0 1px rgba(240,165,0,.04);display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.drop-header{grid-column:1/-1;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 12px 10px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.drop-breed-btn{font-size:12px;font-weight:500;color:var(--soft);padding:8px 12px;border-radius:var(--r-sm);border:none;background:none;cursor:none;transition:color .15s,background .15s;text-align:left;display:flex;align-items:center;gap:6px}
+.drop-breed-btn:hover{color:var(--text);background:rgba(240,165,0,.06)}
+.drop-breed-btn .dot{width:5px;height:5px;background:var(--gold);border-radius:50%;opacity:.5;flex-shrink:0}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#05060e;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 20px;border-radius:var(--r-sm);border:none;cursor:none;box-shadow:0 0 20px rgba(240,165,0,.2);transition:transform .2s,box-shadow .2s;margin-left:8px;position:relative;overflow:hidden}
+.nav-cta::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .4s}
+.nav-cta:hover::after{transform:translateX(100%)}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(240,165,0,.32)}
+
+/* ══ HOME ══ */
+.hero{max-width:1100px;margin:0 auto;padding:100px 32px 80px}
+.hero-layout{display:grid;grid-template-columns:1fr 460px;gap:80px;align-items:center}
+
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--soft);background:linear-gradient(135deg,rgba(240,165,0,.08),rgba(91,138,245,.05));border:1px solid rgba(240,165,0,.18);padding:8px 18px;border-radius:99px;margin-bottom:36px;animation:eyeIn .8s .1s both}
+@keyframes eyeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:ping 2s ease infinite;box-shadow:0 0 8px var(--green)}
+@keyframes ping{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.75)}}
+
+.hero-title{font-family:'Syne',sans-serif;font-size:clamp(44px,7vw,82px);font-weight:800;line-height:.97;letter-spacing:-3px;color:var(--text);margin-bottom:24px;animation:titleIn .9s .2s both}
+@keyframes titleIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.hero-title .line2{display:block;background:linear-gradient(135deg,var(--gold) 0%,#fdd387 40%,var(--gold2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% auto;animation:gradShift 5s ease infinite}
+@keyframes gradShift{0%,100%{background-position:0%}50%{background-position:100%}}
+.hero-sub{font-size:17px;color:var(--muted);line-height:1.8;font-weight:300;margin-bottom:48px;max-width:540px;animation:subIn .9s .35s both}
+@keyframes subIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;animation:actIn .9s .45s both;margin-bottom:48px}
+@keyframes actIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Trust badges */
+.hero-trust{display:flex;gap:20px;flex-wrap:wrap;animation:actIn .9s .6s both}
+.trust-badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--soft);background:rgba(255,255,255,.03);border:1px solid var(--border);padding:6px 14px;border-radius:99px}
+.trust-badge svg{color:var(--gold);opacity:.8}
+
+.btn-glow{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#05060e;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;padding:16px 36px;border-radius:var(--r-md);border:none;cursor:none;box-shadow:0 8px 32px rgba(240,165,0,.28),0 0 0 0 rgba(240,165,0,.2);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.btn-glow::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.22),transparent);transform:translateX(-100%);transition:transform .5s}
+.btn-glow:hover::after{transform:translateX(100%)}
+.btn-glow:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(240,165,0,.42)}
+.btn-ghost{display:inline-flex;align-items:center;gap:10px;background:transparent;color:var(--soft);font-family:'DM Sans',sans-serif;font-weight:600;font-size:15px;padding:16px 28px;border-radius:var(--r-md);border:1px solid var(--border2);cursor:none;transition:color .2s,border-color .2s,background .2s}
+.btn-ghost:hover{color:var(--text);border-color:var(--gold);background:var(--gold-dim)}
+
+/* 3D visual */
+.hero-visual{position:relative;height:460px;perspective:900px}
+.cube-scene{width:230px;height:230px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transform-style:preserve-3d;animation:cubeRotate 18s linear infinite}
+@keyframes cubeRotate{0%{transform:translate(-50%,-50%) rotateX(10deg) rotateY(0deg)}100%{transform:translate(-50%,-50%) rotateX(10deg) rotateY(360deg)}}
+.cube-face{position:absolute;width:230px;height:230px;border:1px solid rgba(240,165,0,.18);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:56px;background:linear-gradient(135deg,rgba(240,165,0,.06),rgba(12,14,30,.9));backdrop-filter:blur(8px)}
+.face-front{transform:translateZ(115px)}
+.face-back{transform:rotateY(180deg) translateZ(115px)}
+.face-left{transform:rotateY(-90deg) translateZ(115px)}
+.face-right{transform:rotateY(90deg) translateZ(115px)}
+.face-top{transform:rotateX(90deg) translateZ(115px)}
+.face-bottom{transform:rotateX(-90deg) translateZ(115px)}
+.float-card{position:absolute;background:rgba(12,14,30,.95);border:1px solid var(--border2);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-md),inset 0 1px 0 rgba(240,165,0,.08);animation:float 6s ease-in-out infinite;backdrop-filter:blur(12px)}
+.fc1{top:28px;right:0;animation-delay:0s}
+.fc2{bottom:48px;left:0;animation-delay:-3s}
+.fc3{top:50%;right:-20px;transform:translateY(-50%);animation:float3 6s ease-in-out -1.5s infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes float3{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 12px))}}
+.fc-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.fc-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.5px}
+.fc-val.gold{color:var(--gold)}
+.fc-val.green{color:var(--green)}
+.fc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.orbit-ring{position:absolute;top:50%;left:50%;width:350px;height:350px;transform:translate(-50%,-50%);border:1px dashed rgba(240,165,0,.1);border-radius:50%;animation:ringRotate 28s linear infinite}
+.orbit-dot{position:absolute;top:-5px;left:50%;width:10px;height:10px;background:var(--gold);border-radius:50%;box-shadow:0 0 14px var(--gold-glow);transform:translateX(-50%)}
+.orbit-ring2{position:absolute;top:50%;left:50%;width:420px;height:420px;transform:translate(-50%,-50%);border:1px dashed rgba(91,138,245,.06);border-radius:50%;animation:ringRotate 40s linear infinite reverse}
+.orbit-dot2{position:absolute;top:-4px;left:50%;width:8px;height:8px;background:var(--blue);border-radius:50%;box-shadow:0 0 10px rgba(91,138,245,.5);transform:translateX(-50%)}
+@keyframes ringRotate{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* Stat strip */
+.stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 80px}
+.stat-item{padding:30px 20px;text-align:center;border-right:1px solid var(--border);transition:background .2s;position:relative;overflow:hidden}
+.stat-item:last-child{border-right:none}
+.stat-item::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .4s}
+.stat-item:hover::after{width:70%}
+.stat-item:hover{background:rgba(240,165,0,.025)}
+.stat-num{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:4px;font-weight:400}
+
+/* Feature cards */
+.feat-grid{max-width:1100px;margin:0 auto 80px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:32px 28px;position:relative;overflow:hidden;transition:transform .4s cubic-bezier(.23,1,.32,1),border-color .3s,box-shadow .4s;transform-style:preserve-3d}
+.feat-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(240,165,0,.06),transparent 55%);opacity:0;transition:opacity .3s}
+.feat-card:hover::after{opacity:1}
+.feat-card:hover{border-color:rgba(240,165,0,.25);box-shadow:var(--shadow-lg),0 0 0 1px rgba(240,165,0,.06)}
+.feat-num{font-family:'Syne',sans-serif;font-size:62px;font-weight:800;color:rgba(240,165,0,.06);position:absolute;top:14px;right:18px;letter-spacing:-3px;line-height:1}
+.feat-icon-box{width:54px;height:54px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--bg3),var(--border));border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px;transition:transform .3s,box-shadow .3s}
+.feat-card:hover .feat-icon-box{transform:scale(1.1) rotate(-5deg);box-shadow:0 8px 24px rgba(240,165,0,.14)}
+.feat-t{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:8px;letter-spacing:-.3px}
+.feat-d{font-size:13px;color:var(--muted);line-height:1.7;font-weight:300}
+
+/* Use Cases section */
+.section-wrap{max-width:1100px;margin:0 auto 80px;padding:0 32px}
+.section-eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.section-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:28px}
+.usecase-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.uc-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;transition:transform .35s cubic-bezier(.23,1,.32,1),border-color .3s}
+.uc-card:hover{transform:translateY(-6px);border-color:rgba(240,165,0,.2)}
+.uc-icon{width:46px;height:46px;border-radius:var(--r-sm);background:linear-gradient(135deg,rgba(240,165,0,.12),rgba(240,165,0,.04));border:1px solid rgba(240,165,0,.15);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+.uc-t{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:6px;letter-spacing:-.2px}
+.uc-d{font-size:12px;color:var(--muted);line-height:1.65;font-weight:300}
+
+/* ══ DETECT ══ */
+.detect-wrap{max-width:860px;margin:0 auto;padding:70px 32px 80px}
+.page-eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.page-title{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;letter-spacing:-1.5px;color:var(--text);margin-bottom:8px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:36px;font-weight:300}
+
+.drop-zone{display:block;cursor:none;border:1.5px dashed var(--border2);border-radius:var(--r-xl);background:linear-gradient(145deg,var(--card),var(--bg3));transition:border-color .3s,box-shadow .3s,background .3s;margin-bottom:18px;overflow:hidden;position:relative}
+.drop-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(240,165,0,.05),transparent 60%);opacity:0;transition:opacity .3s}
+.drop-zone:hover::before,.drop-zone.dragging::before{opacity:1}
+.drop-zone:hover,.drop-zone.dragging{border-color:var(--gold);box-shadow:0 0 0 1px rgba(240,165,0,.12),0 0 60px rgba(240,165,0,.05),inset 0 0 40px rgba(240,165,0,.025)}
+.drop-zone input[type="file"]{display:none}
+.drop-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 24px;gap:12px}
+.drop-icon{width:72px;height:72px;border-radius:var(--r-md);background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;color:var(--muted);margin-bottom:8px;transition:transform .3s,border-color .3s,color .3s,box-shadow .3s}
+.drop-zone:hover .drop-icon{transform:scale(1.1) translateY(-4px);border-color:var(--gold);color:var(--gold);box-shadow:0 12px 32px rgba(240,165,0,.12)}
+.drop-main{font-size:16px;font-weight:500;color:var(--text)}
+.drop-hint{font-size:13px;color:var(--muted)}
+.drop-hint span{color:var(--gold);font-weight:600}
+.drop-ready{display:flex;align-items:center;gap:20px;padding:24px 28px}
+.preview-thumb{width:76px;height:76px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--border2);box-shadow:var(--shadow-sm);flex-shrink:0}
+.preview-name{font-size:14px;font-weight:500;color:var(--text);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-change{font-size:12px;color:var(--gold);margin-top:4px}
+
+/* Tips row */
+.tip-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.tip-item{background:rgba(240,165,0,.04);border:1px solid rgba(240,165,0,.1);border-radius:var(--r-md);padding:12px 16px;display:flex;align-items:flex-start;gap:10px}
+.tip-ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.tip-t{font-size:12px;font-weight:600;color:var(--soft);line-height:1.5}
+.tip-d{font-size:11px;color:var(--muted);line-height:1.5;margin-top:2px}
+
+.detect-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#05060e;border:none;border-radius:var(--r-md);padding:18px;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:none;box-shadow:0 6px 24px rgba(240,165,0,.18);transition:transform .2s,box-shadow .2s,opacity .2s;position:relative;overflow:hidden}
+.detect-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.18),transparent);transform:translateX(-100%);transition:transform .5s}
+.detect-btn:hover:not(:disabled)::after{transform:translateX(100%)}
+.detect-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 36px rgba(240,165,0,.36)}
+.detect-btn:disabled{background:var(--bg3);color:var(--muted);box-shadow:none;cursor:not-allowed}
+
+/* Loading */
+.loading-wrap{flex-direction:column;align-items:center;justify-content:center;padding:60px 32px;display:none}
+.spinner{width:52px;height:52px;border:3px solid var(--border2);border-top-color:var(--gold);border-right-color:rgba(240,165,0,.3);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 20px;box-shadow:0 0 24px rgba(240,165,0,.1)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:13px;color:var(--soft);font-style:italic;margin-bottom:14px;text-align:center}
+.loading-bar-wrap{height:3px;background:var(--bg3);border-radius:99px;overflow:hidden;width:300px}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:99px;animation:loadBar 2.2s ease-in-out infinite}
+@keyframes loadBar{0%{width:0%;opacity:1}75%{width:90%;opacity:1}100%{width:100%;opacity:0}}
+
+/* Result */
+.result-wrap{display:none;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.result-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;display:flex;margin-bottom:16px;box-shadow:var(--shadow-lg),0 0 0 1px rgba(240,165,0,.04)}
+.result-img-col{width:300px;flex-shrink:0;padding:22px;border-right:1px solid var(--border)}
+.result-img-frame{position:relative;border-radius:var(--r-md);overflow:hidden;aspect-ratio:4/3;background:var(--bg3)}
+.result-img{width:100%;height:100%;object-fit:cover;display:block}
+.analysed-badge{position:absolute;bottom:10px;left:10px;background:rgba(5,6,14,.88);color:var(--green);font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;display:flex;align-items:center;gap:5px;border:1px solid rgba(34,212,126,.28);backdrop-filter:blur(10px)}
+.result-info{flex:1;padding:28px 32px;display:flex;flex-direction:column;gap:20px}
+.breed-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+.breed-name-display{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1.5px;line-height:1.05;background:linear-gradient(135deg,var(--text),var(--soft));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.info-k{font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+.info-v{font-size:14px;font-weight:500;color:var(--text)}
+.info-p{font-size:13px;color:var(--soft);line-height:1.7;font-weight:300}
+.conf-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.conf-pct{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--gold);text-shadow:0 0 24px rgba(240,165,0,.28)}
+.conf-track{height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.conf-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:99px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1);box-shadow:0 0 12px rgba(240,165,0,.4)}
+.others-list{display:flex;flex-direction:column;gap:8px}
+.other-row{display:grid;grid-template-columns:1fr 110px 44px;align-items:center;gap:10px;font-size:12px}
+.other-name{color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.other-bar-track{height:5px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.other-bar-fill{height:100%;background:linear-gradient(90deg,var(--border2),var(--blue));border-radius:99px}
+.other-pct{font-size:11px;color:var(--muted);text-align:right;font-weight:700}
+
+/* ── Disease Panel ── */
+.disease-panel{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-xl);padding:28px 32px;margin-bottom:16px;box-shadow:var(--shadow-md)}
+.disease-panel-header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.disease-panel-icon{width:44px;height:44px;border-radius:var(--r-sm);background:linear-gradient(135deg,rgba(240,80,80,.15),rgba(240,80,80,.05));border:1px solid rgba(240,80,80,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.disease-panel-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.3px}
+.disease-panel-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.diseases-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.disease-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;transition:border-color .2s,transform .2s;position:relative;overflow:hidden}
+.disease-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.disease-card.sev-high::before{background:linear-gradient(90deg,var(--red),var(--red2))}
+.disease-card.sev-med::before{background:linear-gradient(90deg,var(--orange),#f59e0b)}
+.disease-card.sev-low::before{background:linear-gradient(90deg,var(--green),var(--green2))}
+.disease-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.disease-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.disease-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:-.2px;line-height:1.3}
+.disease-sev{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:99px;flex-shrink:0}
+.sev-high .disease-sev{background:rgba(240,80,80,.12);color:var(--red);border:1px solid rgba(240,80,80,.2)}
+.sev-med .disease-sev{background:rgba(251,146,60,.12);color:var(--orange);border:1px solid rgba(251,146,60,.2)}
+.sev-low .disease-sev{background:rgba(34,212,126,.1);color:var(--green);border:1px solid rgba(34,212,126,.18)}
+.disease-desc{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.disease-tags{display:flex;flex-wrap:wrap;gap:4px}
+.disease-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft)}
+.disease-disclaimer{margin-top:14px;padding:10px 14px;background:rgba(240,165,0,.05);border:1px solid rgba(240,165,0,.12);border-radius:var(--r-sm);font-size:11px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;line-height:1.55}
+
+.result-actions{display:flex;gap:12px}
+.btn-sec{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:var(--r-md);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:none;background:var(--card);color:var(--text);border:1px solid var(--border2);transition:background .15s,border-color .15s,transform .1s}
+.btn-sec:hover{background:var(--bg3);transform:translateY(-1px)}
+.btn-pri{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:var(--r-md);font-family:'Syne',sans-serif;font-size:13px;font-weight:800;cursor:none;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#05060e;box-shadow:0 4px 16px rgba(240,165,0,.22);transition:transform .15s,box-shadow .15s}
+.btn-pri:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(240,165,0,.36)}
+
+/* ══ BREEDS ══ */
+.breeds-wrap{max-width:1100px;margin:0 auto;padding:70px 32px 80px}
+.breeds-filter{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.filter-btn{font-size:12px;font-weight:600;padding:7px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--muted);cursor:none;transition:all .2s}
+.filter-btn:hover{color:var(--text);border-color:var(--border2)}
+.filter-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#05060e;border-color:transparent;font-weight:700}
+.breeds-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:0}
+.breed-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 18px;cursor:none;transition:transform .35s cubic-bezier(.23,1,.32,1),border-color .3s,box-shadow .3s;transform-style:preserve-3d;position:relative;overflow:hidden}
+.breed-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));transform:scaleX(0);transform-origin:left;transition:transform .35s}
+.breed-card:hover::before{transform:scaleX(1)}
+.breed-card:hover{transform:translateY(-8px);border-color:rgba(240,165,0,.22);box-shadow:var(--shadow-lg),0 0 0 1px rgba(240,165,0,.05)}
+.breed-emoji{font-size:34px;margin-bottom:12px;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));transition:transform .3s}
+.breed-card:hover .breed-emoji{transform:scale(1.15) rotate(-5deg)}
+.breed-card-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.3px;margin-bottom:5px;color:var(--text)}
+.breed-card-type{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 9px;border-radius:99px;margin-bottom:8px}
+.type-cow{background:rgba(240,165,0,.1);color:var(--gold);border:1px solid rgba(240,165,0,.18)}
+.type-buffalo{background:rgba(91,138,245,.1);color:var(--blue);border:1px solid rgba(91,138,245,.18)}
+.breed-card-origin{font-size:11px;color:var(--muted);margin-bottom:7px}
+.breed-card-desc{font-size:11px;color:var(--soft);line-height:1.6;font-weight:300}
+.breed-card-trait{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.trait-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,6,14,.88);backdrop-filter:blur(14px);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-xl);padding:40px;max-width:600px;width:100%;transform:scale(.92) translateY(20px);transition:transform .35s cubic-bezier(.23,1,.32,1);position:relative;max-height:90vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.modal-overlay.open .modal-box{transform:scale(1) translateY(0)}
+.modal-close{position:absolute;top:16px;right:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:none;font-size:18px;color:var(--muted);transition:color .2s,background .2s}
+.modal-close:hover{color:var(--text);background:var(--border2)}
+.modal-emoji{font-size:52px;margin-bottom:14px;display:block}
+.modal-breed-name{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
+.modal-body{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-field{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:14px}
+.mf-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.mf-val{font-size:14px;font-weight:500;color:var(--text)}
+.mf-desc{font-size:13px;color:var(--soft);line-height:1.65;font-weight:300}
+
+/* Modal disease list */
+.modal-disease-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.mdl-disease{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;gap:12px}
+.mdl-disease-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.mdl-disease-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.mdl-disease-sev{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}
+
+/* ══ ABOUT ══ */
+.about-wrap{max-width:1100px;margin:0 auto;padding:80px 32px 80px}
+.about-hero{max-width:720px;margin:0 auto 80px;text-align:center}
+.about-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);background:rgba(91,138,245,.08);border:1px solid rgba(91,138,245,.18);padding:7px 16px;border-radius:99px;margin-bottom:28px}
+.about-title{font-family:'Syne',sans-serif;font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-2px;margin-bottom:18px;line-height:1.05}
+.about-sub{font-size:16px;color:var(--muted);line-height:1.8;font-weight:300}
+.about-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:60px}
+.astat-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:28px 20px;text-align:center;transition:transform .3s,border-color .3s;position:relative;overflow:hidden}
+.astat-card::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);height:1px;width:0;background:linear-gradient(90deg,transparent,var(--gold),transparent);transition:width .5s}
+.astat-card:hover::after{width:100%}
+.astat-card:hover{transform:translateY(-6px);border-color:rgba(240,165,0,.18)}
+.astat-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.astat-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.section-h{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.8px;margin-bottom:22px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:52px 0}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:28px 24px;position:relative;overflow:hidden;transition:transform .3s,border-color .3s}
+.step-card:hover{transform:translateY(-5px);border-color:var(--border2)}
+.step-bg-num{font-family:'Syne',sans-serif;font-size:68px;font-weight:800;color:rgba(240,165,0,.06);position:absolute;top:6px;right:12px;line-height:1;letter-spacing:-4px}
+.step-ico{font-size:28px;margin-bottom:14px}
+.step-t{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:8px}
+.step-d{font-size:12px;color:var(--muted);line-height:1.65;font-weight:300}
+.tech-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.tech-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;display:flex;align-items:flex-start;gap:16px;transition:transform .3s,border-color .3s}
+.tech-card:hover{transform:translateX(5px);border-color:rgba(240,165,0,.16)}
+.tech-ico-box{width:46px;height:46px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.tech-t{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:5px}
+.tech-d{font-size:12px;color:var(--muted);line-height:1.6;font-weight:300}
+
+/* Disease Alert Banner */
+.alert-banner{background:linear-gradient(135deg,rgba(240,80,80,.08),rgba(240,80,80,.03));border:1px solid rgba(240,80,80,.16);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:16px}
+.alert-banner-icon{font-size:28px;flex-shrink:0}
+.alert-banner-t{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:5px}
+.alert-banner-d{font-size:13px;color:var(--muted);line-height:1.65}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:14px 20px;border-radius:var(--r-md);font-size:14px;font-weight:500;z-index:700;animation:slideIn .3s ease,slideOut .3s 2.5s ease forwards;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideOut{to{transform:translateY(10px);opacity:0}}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:28px 32px;position:relative;z-index:1}
+.footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.footer-muted{font-size:12px;color:var(--border2)}
+
+/* Authors */
+.authors-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.author-card{background:linear-gradient(145deg,var(--card),var(--bg3));border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 16px;text-align:center;transition:transform .3s,border-color .3s;position:relative;overflow:hidden}
+.author-card::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);height:2px;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .4s}
+.author-card:hover::after{width:80%}
+.author-card:hover{transform:translateY(-5px);border-color:rgba(240,165,0,.2)}
+.author-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#05060e;margin:0 auto 12px;box-shadow:0 4px 16px rgba(240,165,0,.22)}
+.author-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:3px;letter-spacing:-.2px}
+.author-role{font-size:11px;color:var(--muted)}
+/* Why button */
+.btn-why{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--gold);font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;padding:14px 22px;border-radius:var(--r-md);border:1px solid rgba(240,165,0,.3);cursor:none;transition:color .2s,border-color .2s,background .2s}
+.btn-why:hover{background:rgba(240,165,0,.08);border-color:var(--gold)}
+/* Why modal rows */
+.why-row{display:flex;align-items:flex-start;gap:16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px}
+.why-icon{font-size:22px;flex-shrink:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(240,165,0,.1),rgba(240,165,0,.04));border:1px solid rgba(240,165,0,.14);border-radius:var(--r-sm)}
+.why-t{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:4px;letter-spacing:-.2px}
+.why-d{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* Responsive authors */
+@media(max-width:960px){.authors-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.authors-grid{grid-template-columns:repeat(2,1fr)}.btn-why{display:none}}
+@media(max-width:960px){
+  .hero-layout{grid-template-columns:1fr}
+  .hero-visual{display:none}
+  .about-stats{grid-template-columns:repeat(2,1fr)}
+  .breeds-grid{grid-template-columns:repeat(2,1fr)}
+  .usecase-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-strip{grid-template-columns:repeat(3,1fr)}
+  .dropdown-panel{width:90vw;left:0;transform:translateX(0) translateY(-8px)}
+  .nav-dropdown:hover .dropdown-panel{transform:translateX(0) translateY(0)}
+}
+@media(max-width:640px){
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .feat-grid{grid-template-columns:1fr}
+  .steps-grid,.tech-grid{grid-template-columns:1fr}
+  .breeds-grid{grid-template-columns:1fr}
+  .usecase-grid{grid-template-columns:1fr}
+  .result-card{flex-direction:column}
+  .result-img-col{width:100%;border-right:none;border-bottom:1px solid var(--border)}
+  .result-info{padding:20px}
+  .diseases-grid{grid-template-columns:1fr}
+  .hero{padding:60px 20px 60px}
+  .nav-links{gap:0}
+  .nav-btn{padding:7px 9px;font-size:12px}
+  .tip-row{grid-template-columns:1fr}
+  body{cursor:auto}
+  #cursor,#cursor-ring{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<div id="bg-canvas">
+  <div class="dot-grid"></div>
+  <div class="noise"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="orb orb4"></div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="nav-brand" onclick="showPage('home')">
+      <span class="brand-cow">🐄</span>
+      CowBreed<span class="brand-ai">AI</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-btn active" id="nav-home" onclick="showPage('home')">Home</button>
+      <button class="nav-btn" id="nav-detect" onclick="showPage('detect')">Detect Breed</button>
+      <div class="nav-dropdown">
+        <button class="nav-btn" id="nav-breeds" onclick="showPage('breeds')">All Breeds ▾</button>
+        <div class="dropdown-panel" id="dropdownPanel">
+          <div class="drop-header">8 Recognised Breeds in Dataset</div>
+        </div>
+      </div>
+      <button class="nav-btn" id="nav-about" onclick="showPage('about')">About</button>
+      <button class="nav-cta" onclick="showPage('detect')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Detect Now
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Breed modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <span class="modal-emoji" id="mEmoji"></span>
+    <div class="modal-breed-name" id="mName"></div>
+    <div id="mType"></div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <div class="modal-field"><div class="mf-label">Origin</div><div class="mf-val" id="mOrigin"></div></div>
+        <div class="modal-field"><div class="mf-label">Purpose</div><div class="mf-val" id="mPurpose"></div></div>
+      </div>
+      <div class="modal-field"><div class="mf-label">Description</div><div class="mf-desc" id="mDesc"></div></div>
+      <div class="modal-field"><div class="mf-label">Key Traits</div><div id="mTraits" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px"></div></div>
+      <div class="modal-field">
+        <div class="mf-label">Common Diseases to Watch</div>
+        <div class="modal-disease-list" id="mDiseases"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-layout">
+      <div class="hero-left">
+        <div class="hero-eyebrow"><span class="live-dot"></span>AI-Powered · ResNet-50 · 8 Indigenous Breeds</div>
+        <h1 class="hero-title">
+          Identify Indian<br>
+          <span class="line2">Cattle Breeds</span><br>
+          in Seconds
+        </h1>
+        <p class="hero-sub">Upload a photo of any cow or buffalo and our deep learning model instantly classifies the breed with confidence scoring — built to serve farmers, vets and researchers across India.</p>
+        <div class="hero-actions">
+          <button class="btn-glow" onclick="showPage('detect')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Detect a Breed
+          </button>
+          <button class="btn-ghost" onclick="showPage('breeds')">View All Breeds →</button>
+          <button class="btn-why" onclick="document.getElementById('whyModalOverlay').classList.add('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Why Use This?
+          </button>
+        </div>
+        <div class="hero-trust">
+          <div class="trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            No registration required
+          </div>
+          <div class="trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Images not stored
+          </div>
+          <div class="trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            85%+ accuracy
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="orbit-ring"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring2"><div class="orbit-dot2"></div></div>
+        <div class="cube-scene">
+          <div class="cube-face face-front">🐄</div>
+          <div class="cube-face face-back">🧠</div>
+          <div class="cube-face face-left">📷</div>
+          <div class="cube-face face-right">📊</div>
+          <div class="cube-face face-top">🌾</div>
+          <div class="cube-face face-bottom">🇮🇳</div>
+        </div>
+        <div class="float-card fc1">
+          <div class="fc-label">Top-1 Accuracy</div>
+          <div class="fc-val gold">85%+</div>
+          <div class="fc-sub">Validation set</div>
+        </div>
+        <div class="float-card fc2">
+          <div class="fc-label">Training Images</div>
+          <div class="fc-val green">14,000+</div>
+          <div class="fc-sub">Augmented dataset</div>
+        </div>
+        <div class="float-card fc3">
+          <div class="fc-label">Architecture</div>
+          <div class="fc-val" style="font-size:14px;color:var(--soft)">ResNet-50</div>
+          <div class="fc-sub">Transfer learning</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-item"><div class="stat-num">8</div><div class="stat-lbl">Supported Breeds</div></div>
+    <div class="stat-item"><div class="stat-num">14k+</div><div class="stat-lbl">Training Images</div></div>
+    <div class="stat-item"><div class="stat-num">ResNet-50</div><div class="stat-lbl">Base Architecture</div></div>
+    <div class="stat-item"><div class="stat-num">85%+</div><div class="stat-lbl">Validation Accuracy</div></div>
+    <div class="stat-item"><div class="stat-num">25+</div><div class="stat-lbl">Diseases Tracked</div></div>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+      <div class="feat-num">01</div>
+      <div class="feat-icon-box">📸</div>
+      <div class="feat-t">Instant Upload & Detect</div>
+      <div class="feat-d">Drag-and-drop or browse any JPG/PNG. Our system analyses the image in seconds and returns a breed prediction with full confidence scoring.</div>
+    </div>
+    <div class="feat-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+      <div class="feat-num">02</div>
+      <div class="feat-icon-box">🧠</div>
+      <div class="feat-t">Deep CNN Architecture</div>
+      <div class="feat-d">ResNet-50 fine-tuned on Indian cattle imagery — learns coat texture, horn shape, body structure and colour patterns automatically via transfer learning.</div>
+    </div>
+    <div class="feat-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+      <div class="feat-num">03</div>
+      <div class="feat-icon-box">🩺</div>
+      <div class="feat-t">Disease Risk Insights</div>
+      <div class="feat-d">After breed detection, get a curated list of common diseases for that breed — helping farmers and vets prepare preventive care plans early.</div>
+    </div>
+  </div>
+
+  <!-- Use Cases -->
+  <div class="section-wrap">
+    <div class="section-eyebrow">Who It's For</div>
+    <div class="section-title">Built for Every Stakeholder in Indian Livestock</div>
+    <div class="usecase-grid">
+      <div class="uc-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+        <div class="uc-icon">🌾</div>
+        <div class="uc-t">Farmers</div>
+        <div class="uc-d">Quickly identify purchased cattle, verify breed claims, and understand breed-specific care requirements without needing an expert on-site.</div>
+      </div>
+      <div class="uc-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+        <div class="uc-icon">🩺</div>
+        <div class="uc-t">Veterinarians</div>
+        <div class="uc-d">Confirm breed during field visits and instantly reference breed-specific disease susceptibilities to inform diagnosis and treatment plans.</div>
+      </div>
+      <div class="uc-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+        <div class="uc-icon">🔬</div>
+        <div class="uc-t">Researchers</div>
+        <div class="uc-d">Automate cattle breed classification in field studies, building scalable datasets for livestock genetics, conservation and productivity research.</div>
+      </div>
+      <div class="uc-card" onmousemove="tilt3d(event,this)" onmouseleave="resetTilt(this)">
+        <div class="uc-icon">🏛️</div>
+        <div class="uc-t">Govt. & NGOs</div>
+        <div class="uc-d">Support indigenous breed conservation schemes and national livestock census efforts with automated, scalable identification tools.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETECT -->
+<div class="page" id="page-detect">
+  <div class="detect-wrap">
+    <div class="page-eyebrow">Step 1 — Upload</div>
+    <h2 class="page-title">Detect a Cattle Breed</h2>
+    <p class="page-sub">Upload a clear photo of a cow or buffalo · JPG, PNG, JPEG · Up to 10MB</p>
+
+    <div class="tip-row">
+      <div class="tip-item">
+        <div class="tip-ico">📐</div>
+        <div><div class="tip-t">Use side-profile shots</div><div class="tip-d">Full-body lateral view gives best morphological features</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-ico">☀️</div>
+        <div><div class="tip-t">Good lighting</div><div class="tip-d">Natural daylight shows coat colour and texture accurately</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-ico">🔍</div>
+        <div><div class="tip-t">Clear, unobstructed</div><div class="tip-d">Avoid heavy shadows or background clutter</div></div>
+      </div>
+    </div>
+
+    <label class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this)">
+      <div class="drop-idle" id="dropIdle">
+        <div class="drop-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <p class="drop-main">Drag &amp; drop your image here</p>
+        <p class="drop-hint">or <span>click to browse files</span></p>
+      </div>
+      <div class="drop-ready" id="dropReady" style="display:none">
+        <img id="previewThumb" class="preview-thumb" alt="preview">
+        <div>
+          <div class="preview-name" id="previewName"></div>
+          <div class="preview-change">Click to change image</div>
+        </div>
+      </div>
+    </label>
+
+    <button class="detect-btn" id="detectBtn" onclick="uploadImage()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Detect Breed
+    </button>
+
+    <div class="loading-wrap" id="loadingWrap" style="display:none">
+      <div style="text-align:center;max-width:380px;width:100%">
+        <div class="spinner"></div>
+        <p class="loading-msg" id="loadingMsg">Initialising model…</p>
+        <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="result-wrap" id="resultWrap">
+      <div class="page-eyebrow" style="margin-top:32px">Step 2 — Result</div>
+      <h2 class="page-title" style="margin-bottom:20px">Detection Result</h2>
+      <div class="result-card">
+        <div class="result-img-col">
+          <div class="result-img-frame">
+            <img id="previewImage" class="result-img" alt="analysed">
+            <div class="analysed-badge">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              Analysed
+            </div>
+          </div>
+        </div>
+        <div class="result-info">
+          <div>
+            <div class="breed-label">Breed Identified</div>
+            <div class="breed-name-display" id="breed"></div>
+          </div>
+          <div>
+            <div class="conf-row">
+              <span class="info-k" style="margin-bottom:0">Confidence</span>
+              <span class="conf-pct" id="confidence"></span>
+            </div>
+            <div class="conf-track"><div class="conf-fill" id="confFill"></div></div>
+          </div>
+          <div><span class="info-k">Origin</span><span class="info-v" id="origin"></span></div>
+          <div><span class="info-k">Description</span><p class="info-p" id="description"></p></div>
+          <div><span class="info-k">Other Possibilities</span><div id="others" class="others-list"></div></div>
+        </div>
+      </div>
+
+      <!-- Disease Panel -->
+      <div class="disease-panel" id="diseasePanelWrap">
+        <div class="disease-panel-header">
+          <div class="disease-panel-icon">🩺</div>
+          <div>
+            <div class="disease-panel-title">Common Diseases for This Breed</div>
+            <div class="disease-panel-sub">Breed-specific susceptibilities to monitor — consult a licensed veterinarian for diagnosis</div>
+          </div>
+        </div>
+        <div class="diseases-grid" id="diseaseGrid"></div>
+        <div class="disease-disclaimer">
+          <span style="font-size:14px;flex-shrink:0">⚠️</span>
+          <span>This information is for educational awareness only. Disease occurrence varies by region, season, and herd management. Always consult a qualified veterinarian for diagnosis and treatment.</span>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn-sec" onclick="resetDetect()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+          Analyse Another
+        </button>
+        <button class="btn-pri" onclick="downloadReport()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BREEDS -->
+<div class="page" id="page-breeds">
+  <div class="breeds-wrap">
+    <div class="page-eyebrow">Dataset — 8 Breeds</div>
+    <h2 class="page-title">All Supported Breeds</h2>
+    <p class="page-sub">Click any card to learn more — including common diseases for each breed. These are the 8 indigenous Indian cattle breeds currently in the model's dataset.</p>
+    <div class="breeds-filter">
+      <button class="filter-btn active" onclick="filterBreeds('all',this)">All Breeds</button>
+      <button class="filter-btn" onclick="filterBreeds('cow',this)">🐄 Cattle Only</button>
+      <button class="filter-btn" onclick="filterBreeds('draught',this)">🏋️ Draught</button>
+      <button class="filter-btn" onclick="filterBreeds('dairy',this)">🥛 Dairy</button>
+    </div>
+    <div class="breeds-grid" id="breedsGrid"></div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div class="page" id="page-about">
+  <div class="about-wrap">
+    <div class="about-hero">
+      <div class="about-badge">🎓 AI Research Project · Deep Learning for Indian Agriculture</div>
+      <h1 class="about-title">Intelligent Breed Detection for<br><span class="line2">Indian Cows &amp; Buffaloes</span></h1>
+      <p class="about-sub">A deep learning research initiative bridging traditional livestock practices with modern AI — empowering India's farmers, veterinarians, and researchers to identify and conserve native cattle heritage.</p>
+    </div>
+
+    <div class="about-stats">
+      <div class="astat-card"><div class="astat-num">8</div><div class="astat-lbl">Breeds in Dataset</div></div>
+      <div class="astat-card"><div class="astat-num">14k+</div><div class="astat-lbl">Training Images</div></div>
+      <div class="astat-card"><div class="astat-num">ResNet-50</div><div class="astat-lbl">CNN Architecture</div></div>
+      <div class="astat-card"><div class="astat-num">85%+</div><div class="astat-lbl">Validation Accuracy</div></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-h">How It Works</div>
+    <div class="steps-grid">
+      <div class="step-card"><div class="step-bg-num">01</div><div class="step-ico">📸</div><div class="step-t">Upload Photo</div><div class="step-d">Upload a clear cattle photo via mobile or desktop. Side-profile images yield best results for morphological feature extraction.</div></div>
+      <div class="step-card"><div class="step-bg-num">02</div><div class="step-ico">⚡</div><div class="step-t">AI Inference</div><div class="step-d">ResNet-50 processes the image through convolutional layers — extracting coat texture, horn shape, body structure and colour patterns automatically.</div></div>
+      <div class="step-card"><div class="step-bg-num">03</div><div class="step-ico">📊</div><div class="step-t">Breed + Health Insights</div><div class="step-d">Get the top predicted breed with confidence, origin, description, ranked alternatives, and a curated list of breed-specific disease risks.</div></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-h">Technology Stack</div>
+    <div class="tech-grid">
+      <div class="tech-card"><div class="tech-ico-box">🧠</div><div><div class="tech-t">TensorFlow + ResNet-50</div><div class="tech-d">Transfer learning from ImageNet weights fine-tuned on 14,000+ Indian cattle images. Data augmentation (rotation, flipping, scaling) reduces overfitting.</div></div></div>
+      <div class="tech-card"><div class="tech-ico-box">🐍</div><div><div class="tech-t">Python + Flask Backend</div><div class="tech-d">Flask REST API handles image uploads, PIL preprocessing (resize, normalize), model inference, and structured JSON prediction responses.</div></div></div>
+      <div class="tech-card"><div class="tech-ico-box">📈</div><div><div class="tech-t">Grad-CAM Explainability</div><div class="tech-d">Gradient-weighted Class Activation Maps highlight which image regions drove the breed prediction — improving transparency for non-expert users.</div></div></div>
+      <div class="tech-card"><div class="tech-ico-box">🌐</div><div><div class="tech-t">Web + Mobile Deployment</div><div class="tech-d">Lightweight frontend with drag-and-drop upload, animated confidence bars, breed disease insights, and downloadable reports accessible from any device.</div></div></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-h">Model Performance</div>
+    <div class="tech-grid" style="margin-bottom:0">
+      <div class="tech-card" style="flex-direction:column;gap:12px"><div class="tech-t" style="font-size:15px">Training vs Validation Loss</div><div class="tech-d">Training loss decreases from ~1.15 to below 0.15 across epochs, showing strong feature convergence. Validation loss stabilises well with regularisation applied via augmentation and dropout layers.</div></div>
+      <div class="tech-card" style="flex-direction:column;gap:12px"><div class="tech-t" style="font-size:15px">Classification Results</div><div class="tech-d">Achieves 85%+ validation accuracy across 8 breeds. Strong performance on Lakhimi, Umblachery, and Siri. Sahiwal occasionally misclassified as Lakhimi due to similar coat patterns — a known challenge in fine-grained breed recognition.</div></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-h">Research Team</div>
+    <div class="authors-grid">
+      <div class="author-card">
+        <div class="author-avatar">G</div>
+        <div class="author-name">Gavish</div>
+        <div class="author-role"></div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">VK</div>
+        <div class="author-name">Vivek Kumar</div>
+        <div class="author-role"></div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">AB</div>
+        <div class="author-name">Amritanshu Bharti</div>
+        <div class="author-role"></div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">YT</div>
+        <div class="author-name">Yashraj Tiwari</div>
+        <div class="author-role"></div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">JR</div>
+        <div class="author-name">Janvi Rajput</div>
+        <div class="author-role"></div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">AS</div>
+        <div class="author-name">Ansh Sharma</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHY USE US MODAL -->
+<div class="modal-overlay" id="whyModalOverlay" onclick="closeWhyModal(event)">
+  <div class="modal-box" id="whyModalBox" style="max-width:680px">
+    <button class="modal-close" onclick="document.getElementById('whyModalOverlay').classList.remove('open')">✕</button>
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Why CowBreed AI?</div>
+      <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:10px">The Problem We Solve</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">India is home to over 50 indigenous cattle breeds — yet most go unidentified, misclassified or ignored. Manual identification requires trained experts who are scarce in rural areas. CowBreed AI bridges this gap.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="why-row">
+        <div class="why-icon">🔍</div>
+        <div><div class="why-t">Instant, Expert-Level Identification</div><div class="why-d">Get accurate breed identification in seconds — no vet, no expert, no travel required. Works on any smartphone camera.</div></div>
+      </div>
+      <div class="why-row">
+        <div class="why-icon">🩺</div>
+        <div><div class="why-t">Proactive Disease Awareness</div><div class="why-d">Know which diseases to watch for <em>before</em> symptoms appear. Breed-specific disease profiles help farmers act early and reduce livestock loss.</div></div>
+      </div>
+      <div class="why-row">
+        <div class="why-icon">🌾</div>
+        <div><div class="why-t">Made for Rural India</div><div class="why-d">Designed for low-connectivity environments. No signup, no subscription. Just upload a photo and get results instantly.</div></div>
+      </div>
+      <div class="why-row">
+        <div class="why-icon">🧬</div>
+        <div><div class="why-t">Supports Indigenous Breed Conservation</div><div class="why-d">Accurate breed records help track population trends of endangered indigenous breeds, supporting government conservation schemes.</div></div>
+      </div>
+      <div class="why-row">
+        <div class="why-icon">📊</div>
+        <div><div class="why-t">85%+ Accuracy with Explainable AI</div><div class="why-d">Built on ResNet-50 with Grad-CAM explainability — so you can see exactly which features of the animal drove the prediction.</div></div>
+      </div>
+      <div class="why-row">
+        <div class="why-icon">📄</div>
+        <div><div class="why-t">Downloadable Reports</div><div class="why-d">Generate and save breed identification reports with disease insights — useful for veterinary records, farm management and insurance claims.</div></div>
+      </div>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:12px">
+      <button class="btn-pri" onclick="document.getElementById('whyModalOverlay').classList.remove('open');showPage('detect')" style="flex:1;justify-content:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Try It Now
+      </button>
+      <button class="btn-sec" onclick="document.getElementById('whyModalOverlay').classList.remove('open')" style="flex:1;justify-content:center">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>🐄 CowBreed AI &nbsp;·&nbsp; Indigenous Indian Cattle Breed Recognition</span>
+    <span class="footer-muted">ResNet-50 · TensorFlow · 8 Indian Breeds · AI for Agriculture</span>
+  </div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════
+   BREED + DISEASE DATA
+════════════════════════════════════════ */
+const BREEDS = [
+  {
+    id:'amritmahal', name:'Amritmahal', emoji:'🐂', type:'cow', purpose:'Draught',
+    origin:'Karnataka, India',
+    desc:'One of the finest draught breeds of India, the Amritmahal is known for its exceptional stamina and agility. Historically maintained by the Mysore royal family, these cattle can cover long distances over rough terrain with remarkable endurance.',
+    traits:['Excellent draught','High stamina','Heat-tolerant','Grey/white coat','Erect horns'],
+    diseases:[
+      {name:'Foot-and-Mouth Disease (FMD)',sev:'high',desc:'Highly contagious viral disease causing blisters on mouth and feet. Amritmahal are susceptible due to field exposure.',tags:['Viral','Contagious','Notifiable']},
+      {name:'Hemorrhagic Septicemia',sev:'high',desc:'Bacterial infection (Pasteurella) causing sudden death in draught cattle, especially during monsoon and stress.',tags:['Bacterial','Monsoon risk','Fatal']},
+      {name:'Trypanosomiasis (Surra)',sev:'med',desc:'Blood parasite spread by biting flies, causing weakness, anaemia and weight loss in working cattle.',tags:['Parasitic','Vector-borne']},
+      {name:'Bovine Ephemeral Fever',sev:'low',desc:'Transient viral fever causing temporary lameness and reduced draught performance, usually self-limiting.',tags:['Viral','Seasonal']},
+    ]
+  },
+  {
+    id:'ayrshire', name:'Ayrshire', emoji:'🐄', type:'cow', purpose:'Dairy',
+    origin:'Ayrshire, Scotland (introduced to India)',
+    desc:'Originally from Scotland, Ayrshire cattle have been introduced to India for dairy crossbreeding programs. Known for efficient milk production with good butterfat content and adapt well to diverse climates.',
+    traits:['High milk yield','Good butterfat','Brown-white colour','Docile temperament','Medium build'],
+    diseases:[
+      {name:'Mastitis',sev:'high',desc:'Inflammation of the udder, most common in high-producing dairy breeds. Causes significant milk loss and economic impact.',tags:['Bacterial','Dairy-critical','Common']},
+      {name:'Bovine Leukosis (BLV)',sev:'high',desc:'Viral disease causing tumours in lymphoid tissue. Ayrshire crossbreeds show some susceptibility in tropical conditions.',tags:['Viral','Chronic','Notifiable']},
+      {name:'Milk Fever (Hypocalcaemia)',sev:'med',desc:'Metabolic disorder around calving due to low blood calcium. More common in high milk producers like Ayrshire.',tags:['Metabolic','Post-partum']},
+      {name:'Teat Chap / Teat Canal Infections',sev:'low',desc:'Skin and canal infections of the teat common in dairy breeds; can precede mastitis if untreated.',tags:['Bacterial','Preventable']},
+    ]
+  },
+  {
+    id:'bachaur', name:'Bachaur', emoji:'🐂', type:'cow', purpose:'Draught',
+    origin:'Sitamarhi & Sheohar, Bihar',
+    desc:'A draught breed native to the Bachaur area of Bihar, compact, muscular and well-suited to the agricultural conditions of the Indo-Gangetic plains. Highly valued for field work.',
+    traits:['Strong draught','Compact build','Hardy','Light grey coat','Short horns'],
+    diseases:[
+      {name:'Foot-and-Mouth Disease (FMD)',sev:'high',desc:'Extremely common in Bihar\'s agricultural belt. FMD vaccination is critical for draught breeds in field use.',tags:['Viral','Contagious','Notifiable']},
+      {name:'Hemorrhagic Septicemia',sev:'high',desc:'Frequently fatal in unvaccinated draught cattle, peaking in pre-monsoon conditions of the Gangetic plains.',tags:['Bacterial','Fatal','Seasonal']},
+      {name:'Theileriosis',sev:'med',desc:'Tick-borne protozoan disease causing anaemia and high fever; endemic in Bihar and surrounding states.',tags:['Protozoan','Tick-borne']},
+      {name:'Black Quarter (Blackleg)',sev:'med',desc:'Soil-borne clostridial infection causing sudden lameness and gas gangrene in young cattle.',tags:['Bacterial','Soil-borne','Young cattle']},
+    ]
+  },
+  {
+    id:'badri', name:'Badri', emoji:'🐄', type:'cow', purpose:'Dual-purpose',
+    origin:'Uttarakhand Hill Region',
+    desc:'The Badri is a hill breed native to the Garhwal and Kumaon regions of Uttarakhand. Perfectly adapted to the Himalayan terrain, these small, hardy cattle are invaluable to mountain farming communities.',
+    traits:['Hill-adapted','Cold-tolerant','Small frame','Nutritious milk','Sure-footed'],
+    diseases:[
+      {name:'Contagious Bovine Pleuropneumonia (CBPP)',sev:'high',desc:'Bacterial lung infection that spreads rapidly in confined high-altitude herds where animals shelter together.',tags:['Bacterial','Respiratory','Notifiable']},
+      {name:'Bovine Respiratory Disease (BRD)',sev:'med',desc:'Complex of viral and bacterial respiratory infections worsened by cold Himalayan winters and altitude stress.',tags:['Multi-causal','Seasonal','Cold-weather']},
+      {name:'Liver Fluke (Fasciolosis)',sev:'med',desc:'Parasitic flatworm infestation via marshy pastures in valley areas; causes liver damage and production loss.',tags:['Parasitic','Pasture-borne']},
+      {name:'Frostbite & Hypothermia',sev:'low',desc:'Non-infectious but significant in high-altitude winters; affects extremities and reduces milk output.',tags:['Environmental','Seasonal']},
+    ]
+  },
+  {
+    id:'lakhimi', name:'Lakhimi', emoji:'🐄', type:'cow', purpose:'Dairy + Draught',
+    origin:'Assam, Northeast India',
+    desc:'The Lakhimi (also Lakhimpur) is a dual-purpose breed from Assam, adapted to the hot and humid climate of Northeast India. It plays a vital role in the agricultural economy of Assam.',
+    traits:['Dual-purpose','Humid climate adapted','Medium size','Light coat','Docile'],
+    diseases:[
+      {name:'Foot-and-Mouth Disease (FMD)',sev:'high',desc:'Assam\'s high humidity and shared grazing land make FMD outbreaks frequent. Annual vaccination is essential.',tags:['Viral','Contagious','Notifiable']},
+      {name:'Babesiosis (Tick Fever)',sev:'high',desc:'Blood parasite transmitted by ticks prevalent in humid Assamese forests and pastures; causes severe anaemia.',tags:['Protozoan','Tick-borne','Endemic']},
+      {name:'Bovine Tropical Theileriosis',sev:'med',desc:'Common in humid tropical regions; causes lymph node enlargement, high fever and nasal discharge.',tags:['Protozoan','Tick-borne','Tropical']},
+      {name:'Bovine Diarrhoea (BVD)',sev:'low',desc:'Viral enteric and respiratory disease; Lakhimi calves are susceptible particularly during wet monsoon months.',tags:['Viral','Calves','Seasonal']},
+    ]
+  },
+  {
+    id:'sahiwal', name:'Sahiwal', emoji:'🐄', type:'cow', purpose:'Dairy',
+    origin:'Punjab (India & Pakistan)',
+    desc:'One of the best dairy breeds of the Indian subcontinent, the Sahiwal is renowned for high milk production, heat tolerance, and resistance to tick-borne diseases. Widely used in crossbreeding programmes worldwide.',
+    traits:['Top milk producer','Heat-resistant','Tick-tolerant','Reddish-brown','Loose skin'],
+    diseases:[
+      {name:'Mastitis',sev:'high',desc:'Despite tick resistance, Sahiwal\'s high milk output makes them prone to udder infections, especially subclinical mastitis.',tags:['Bacterial','Dairy-critical','Subclinical']},
+      {name:'Bovine Tuberculosis',sev:'high',desc:'Chronic bacterial disease; Sahiwal in cross-breeding programmes may be exposed at livestock markets and farms.',tags:['Bacterial','Zoonotic','Notifiable']},
+      {name:'Leptospirosis',sev:'med',desc:'Waterborne bacterial infection common in Punjab\'s irrigated farmland; can cause abortion and jaundice.',tags:['Bacterial','Zoonotic','Waterborne']},
+      {name:'Brucellosis',sev:'med',desc:'Reproductive disease causing abortions in Sahiwal cows; zoonotic risk to farmers. Vaccination programs exist.',tags:['Bacterial','Reproductive','Zoonotic']},
+    ]
+  },
+  {
+    id:'siri', name:'Siri', emoji:'🐂', type:'cow', purpose:'Dual-purpose',
+    origin:'Sikkim & Darjeeling Hills',
+    desc:'The Siri is a hill breed from Sikkim and the Darjeeling hills, a natural cross of local cattle with Yak or Mithun in some lineages. Well-adapted to steep terrain and cold temperatures, a pillar of hill community farming.',
+    traits:['Mountain-adapted','Yak-influenced','Cold tolerant','Black & white','Dual purpose'],
+    diseases:[
+      {name:'Bovine Respiratory Disease (BRD)',sev:'high',desc:'Siri cattle in high-altitude cold-wet conditions are highly prone to pneumonia and respiratory complexes.',tags:['Multi-causal','Respiratory','Altitude']},
+      {name:'Internal Parasitism (Helminths)',sev:'med',desc:'Gastrointestinal worm burdens are high on Sikkimese pastures; seasonal deworming is critical.',tags:['Parasitic','Pasture-borne','Chronic']},
+      {name:'Johne\'s Disease (Paratuberculosis)',sev:'med',desc:'Chronic bacterial infection causing progressive weight loss and diarrhoea; prevalent in hill breed cattle.',tags:['Bacterial','Chronic','Hill breeds']},
+      {name:'Contagious Ecthyma (Orf)',sev:'low',desc:'Viral skin disease causing lesions around the mouth; often introduced via contact with sheep on shared hill pastures.',tags:['Viral','Skin','Zoonotic']},
+    ]
+  },
+  {
+    id:'umblachery', name:'Umblachery', emoji:'🐂', type:'cow', purpose:'Draught',
+    origin:'Thanjavur & Nagapattinam, Tamil Nadu',
+    desc:'A purebred draught cattle from the coastal districts of Tamil Nadu, superbly adapted to wet rice cultivation and paddy field work. Its hooves are uniquely suited to working in waterlogged soils.',
+    traits:['Paddy field specialist','Waterlogged terrain','Grey coat','Compact','High endurance'],
+    diseases:[
+      {name:'Foot Rot (Foul of the Foot)',sev:'high',desc:'Bacterial infection of the hoof extremely common in Umblachery due to prolonged exposure to waterlogged paddy fields.',tags:['Bacterial','Hoof','Paddy-exposure']},
+      {name:'Hemorrhagic Septicemia',sev:'high',desc:'Draught cattle in Tamil Nadu\'s coastal delta regions face high HS risk during pre-monsoon. Vaccination is essential.',tags:['Bacterial','Fatal','Seasonal']},
+      {name:'Tropical Skin Diseases (Dermatophilosis)',sev:'med',desc:'Fungal/bacterial skin crusting worsened by wet field conditions and humidity in coastal Tamil Nadu.',tags:['Bacterial','Skin','Humidity']},
+      {name:'Anaplasmosis',sev:'med',desc:'Tick-borne rickettsial disease causing anaemia; common in deltaic wetland environments with high tick pressure.',tags:['Rickettsial','Tick-borne','Anaemia']},
+    ]
+  }
+];
+
+/* Build dropdown */
+const dp = document.getElementById('dropdownPanel');
+BREEDS.forEach(b=>{
+  const btn=document.createElement('button');
+  btn.className='drop-breed-btn';
+  btn.innerHTML=`<span class="dot"></span>${b.emoji} ${b.name}`;
+  btn.onclick=(e)=>{e.stopPropagation();showPage('breeds');setTimeout(()=>openModal(b.id),200)};
+  dp.appendChild(btn);
+});
+
+/* Build breeds grid */
+function buildGrid(filter='all'){
+  const grid=document.getElementById('breedsGrid');
+  grid.innerHTML='';
+  BREEDS.filter(b=>{
+    if(filter==='all') return true;
+    if(filter==='cow') return b.type==='cow';
+    if(filter==='dairy') return b.purpose.toLowerCase().includes('dairy');
+    if(filter==='draught') return b.purpose.toLowerCase().includes('draught');
+    return true;
+  }).forEach(b=>{
+    const card=document.createElement('div');
+    card.className='breed-card';
+    card.innerHTML=`
+      <span class="breed-emoji">${b.emoji}</span>
+      <div class="breed-card-name">${b.name}</div>
+      <div class="breed-card-type type-cow">${b.type==='cow'?'🐄 Cattle':'🐃 Buffalo'}</div>
+      <div class="breed-card-origin">📍 ${b.origin}</div>
+      <div class="breed-card-desc">${b.desc.substring(0,95)}…</div>
+      <div class="breed-card-trait">${b.traits.slice(0,3).map(t=>`<span class="trait-tag">${t}</span>`).join('')}</div>
+    `;
+    card.addEventListener('mousemove',e=>tilt3d(e,card));
+    card.addEventListener('mouseleave',()=>resetTilt(card));
+    card.onclick=()=>openModal(b.id);
+    grid.appendChild(card);
+  });
+}
+buildGrid();
+
+function filterBreeds(type,el){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  buildGrid(type);
+}
+
+/* Modal */
+function openModal(id){
+  const b=BREEDS.find(x=>x.id===id);if(!b)return;
+  document.getElementById('mEmoji').textContent=b.emoji;
+  document.getElementById('mName').textContent=b.name;
+  document.getElementById('mType').innerHTML=`<div class="breed-card-type type-cow" style="display:inline-flex;margin-top:6px">${b.type==='cow'?'🐄 Cattle':'🐃 Buffalo'} · ${b.purpose}</div>`;
+  document.getElementById('mOrigin').textContent=b.origin;
+  document.getElementById('mPurpose').textContent=b.purpose;
+  document.getElementById('mDesc').textContent=b.desc;
+  document.getElementById('mTraits').innerHTML=b.traits.map(t=>`<span class="trait-tag">${t}</span>`).join('');
+  const dl=document.getElementById('mDiseases');
+  dl.innerHTML=b.diseases.map(d=>{
+    const col=d.sev==='high'?'var(--red)':d.sev==='med'?'var(--orange)':'var(--green)';
+    const bg=d.sev==='high'?'rgba(240,80,80,.12)':d.sev==='med'?'rgba(251,146,60,.12)':'rgba(34,212,126,.1)';
+    const label=d.sev==='high'?'High Risk':d.sev==='med'?'Moderate':'Low Risk';
+    return `<div class="mdl-disease">
+      <div class="mdl-disease-dot" style="background:${col}"></div>
+      <div class="mdl-disease-name">${d.name}</div>
+      <div class="mdl-disease-sev" style="background:${bg};color:${col};border:1px solid ${col}44">${label}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalDirect()}
+function closeModalDirect(){document.getElementById('modalOverlay').classList.remove('open')}
+
+/* ════ NAVIGATION ════ */
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const page=document.getElementById('page-'+name);
+  if(page)page.classList.add('active');
+  const btn=document.getElementById('nav-'+name);
+  if(btn)btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ════ DETECT ════ */
+function handleFile(input){
+  const file=input.files[0];if(!file)return;
+  const url=URL.createObjectURL(file);
+  document.getElementById('previewThumb').src=url;
+  document.getElementById('previewImage').src=url;
+  document.getElementById('previewName').textContent=file.name;
+  document.getElementById('dropIdle').style.display='none';
+  document.getElementById('dropReady').style.display='flex';
+  document.getElementById('detectBtn').disabled=false;
+  document.getElementById('resultWrap').style.display='none';
+}
+
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragging')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragging'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('dragging');
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')){
+    const dt=new DataTransfer();dt.items.add(file);
+    document.getElementById('fileInput').files=dt.files;
+    handleFile(document.getElementById('fileInput'));
+  }
+});
+
+const LOAD_MSGS=['Initialising ResNet-50 model…','Extracting convolutional features…','Analysing coat texture & morphology…','Comparing against 8 breed signatures…','Calculating confidence scores…','Fetching disease insights…','Finalising prediction…'];
+let msgTimer;
+
+function renderDiseases(breedName){
+  // Match breed name from API to our data (case-insensitive partial match)
+  const lower=breedName.toLowerCase();
+  const match=BREEDS.find(b=>lower.includes(b.id)||b.name.toLowerCase().split(' ').some(w=>lower.includes(w)));
+  const diseases=match?match.diseases:[];
+  const grid=document.getElementById('diseaseGrid');
+  if(!diseases.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--muted);font-size:13px">No specific disease data available for this breed.</div>`;
+    return;
+  }
+  grid.innerHTML=diseases.map(d=>`
+    <div class="disease-card sev-${d.sev}">
+      <div class="disease-top">
+        <div class="disease-name">${d.name}</div>
+        <div class="disease-sev">${d.sev==='high'?'High Risk':d.sev==='med'?'Moderate':'Low Risk'}</div>
+      </div>
+      <div class="disease-desc">${d.desc}</div>
+      <div class="disease-tags">${d.tags.map(t=>`<span class="disease-tag">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function uploadImage(){
+  const file=document.getElementById('fileInput').files[0];
+  if(!file){showToast('⚠️ Please upload an image first');return;}
+  document.getElementById('loadingWrap').style.display='flex';
+  document.getElementById('resultWrap').style.display='none';
+  document.getElementById('loadingWrap').scrollIntoView({behavior:'smooth',block:'center'});
+  let mi=0;
+  const lm=document.getElementById('loadingMsg');
+  lm.textContent=LOAD_MSGS[0];
+  msgTimer=setInterval(()=>{mi=(mi+1)%LOAD_MSGS.length;lm.textContent=LOAD_MSGS[mi]},1700);
+  const fd=new FormData();fd.append('file',file);
+  fetch('/predict',{method:'POST',body:fd})
+    .then(r=>r.json())
+    .then(data=>{
+      clearInterval(msgTimer);
+      document.getElementById('loadingWrap').style.display='none';
+      document.getElementById('breed').textContent=data.breed;
+      document.getElementById('confidence').textContent=data.confidence+'%';
+      setTimeout(()=>{document.getElementById('confFill').style.width=Math.min(data.confidence,100)+'%'},120);
+      document.getElementById('origin').textContent=data.origin;
+      document.getElementById('description').textContent=data.description;
+      document.getElementById('others').innerHTML=(data.others||[]).map(o=>`
+        <div class="other-row">
+          <span class="other-name">${o.breed}</span>
+          <span class="other-bar-track"><span class="other-bar-fill" style="width:${Math.min(o.conf,100)}%"></span></span>
+          <span class="other-pct">${o.conf}%</span>
+        </div>`).join('');
+      renderDiseases(data.breed);
+      document.getElementById('resultWrap').style.display='block';
+      document.getElementById('resultWrap').scrollIntoView({behavior:'smooth',block:'start'});
+    })
+    .catch(()=>{
+      clearInterval(msgTimer);
+      document.getElementById('loadingWrap').style.display='none';
+      showToast('❌ Server error — is Flask running?');
+    });
+}
+
+function resetDetect(){
+  document.getElementById('fileInput').value='';
+  document.getElementById('dropIdle').style.display='flex';
+  document.getElementById('dropReady').style.display='none';
+  document.getElementById('detectBtn').disabled=true;
+  document.getElementById('resultWrap').style.display='none';
+  document.getElementById('confFill').style.width='0%';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function downloadReport(){
+  const breed=document.getElementById('breed').textContent;
+  if(!breed){showToast('⚠️ No result to download yet');return;}
+  const conf=document.getElementById('confidence').textContent;
+  const origin=document.getElementById('origin').textContent;
+  const desc=document.getElementById('description').textContent;
+  const now=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  const match=BREEDS.find(b=>breed.toLowerCase().includes(b.id)||b.name.toLowerCase().split(' ').some(w=>breed.toLowerCase().includes(w)));
+  let diseaseSection='';
+  if(match){
+    diseaseSection=`\nCOMMON DISEASES TO MONITOR:\n${'─'.repeat(48)}\n`+
+    match.diseases.map(d=>`  [${(d.sev==='high'?'HIGH RISK':d.sev==='med'?'MODERATE':'LOW RISK').padEnd(10)}] ${d.name}\n               ${d.desc}`).join('\n\n');
+  }
+  const txt=`COWBREED AI — BREED DETECTION REPORT
+Generated: ${now}
+${'─'.repeat(48)}
+
+BREED IDENTIFIED : ${breed}
+CONFIDENCE       : ${conf}
+ORIGIN           : ${origin}
+
+DESCRIPTION:
+${desc}
+${diseaseSection}
+
+${'─'.repeat(48)}
+DISCLAIMER: Disease information is for educational awareness only.
+Always consult a licensed veterinarian for diagnosis and treatment.
+${'─'.repeat(48)}
+CowBreed AI · ResNet-50 · TensorFlow · 8 Indian Breeds
+`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download=`CowBreed_${breed.replace(/\s+/g,'_')}_Report.txt`;
+  a.click();
+  showToast('✅ Report downloaded!');
+}
+
+/* ════ 3D TILT ════ */
+function tilt3d(e,el){
+  const r=el.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width-.5;
+  const y=(e.clientY-r.top)/r.height-.5;
+  el.style.transform=`perspective(700px) rotateY(${x*14}deg) rotateX(${-y*10}deg) translateY(-8px)`;
+  el.style.setProperty('--mx',(e.clientX-r.left)/r.width*100+'%');
+  el.style.setProperty('--my',(e.clientY-r.top)/r.height*100+'%');
+}
+function resetTilt(el){el.style.transform=''}
+
+function closeWhyModal(e){if(e.target===document.getElementById('whyModalOverlay'))document.getElementById('whyModalOverlay').classList.remove('open')}
+
+/* ════ CURSOR ════ */
+const cur=document.getElementById('cursor');
+const ring=document.getElementById('cursor-ring');
+let rx=0,ry=0,cx=0,cy=0;
+document.addEventListener('mousemove',e=>{
+  cx=e.clientX;cy=e.clientY;
+  cur.style.left=cx+'px';cur.style.top=cy+'px';
+});
+(function animRing(){rx+=(cx-rx)*.12;ry+=(cy-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing)})();
+document.querySelectorAll('button,[onclick],a,.breed-card,.feat-card,.nav-btn,.stat-item,.uc-card,.disease-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='18px';cur.style.height='18px';ring.style.width='52px';ring.style.height='52px'});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';ring.style.width='36px';ring.style.height='36px'});
+});
+
+/* ════ TOAST ════ */
+function showToast(msg){
+  const old=document.querySelector('.toast');if(old)old.remove();
+  const el=document.createElement('div');
+  el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+</script>
+</body>
+</html>
